@@ -60,7 +60,17 @@ fn handleCd(args: [][]const u8) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
-    if (std.mem.eql(u8, args[1], "~") or std.mem.startsWith(u8, args[1], "~/")) {
+    if (std.mem.eql(u8, args[1], "~")) {
+        const homeValue = try std.process.getEnvVarOwned(allocator, "HOME");
+        try attemptToNavigate(homeValue);
+        return;
+    }
+
+    if (std.mem.startsWith(u8, args[1], "~/")) {
+        const homeValue = try std.process.getEnvVarOwned(allocator, "HOME");
+        const absPath = try std.fs.path.join(allocator, &[_][]const u8{ homeValue, args[1][2..] });
+        defer allocator.free(absPath);
+        try attemptToNavigate(absPath);
         return;
     }
 
