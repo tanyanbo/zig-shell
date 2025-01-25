@@ -9,7 +9,14 @@ pub fn handler(input: []u8) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     var args = std.ArrayList([]const u8).init(allocator);
-    defer args.deinit();
+    defer {
+        args.deinit();
+        const status = gpa.deinit();
+        if (status == .leak) {
+            stdout.print("memory leak\n", .{}) catch {};
+            std.process.exit(100);
+        }
+    }
 
     if (iter.next()) |command| {
         try args.append(command);
@@ -23,6 +30,11 @@ pub fn handler(input: []u8) !void {
             try handleEcho(args.items);
         } else if (std.mem.eql(u8, command, "type")) {
             try handleType(args.items);
+        } else if (std.mem.eql(u8, command, "pwd")) {
+            const buffer = try allocator.alloc(u8, 1000);
+            defer allocator.free(buffer);
+            const result = try std.fs.cwd().realpath(".", buffer);
+            try stdout.print("{s}\n", .{result});
         } else {
             try handleUnknownCommands(args.items);
         }
