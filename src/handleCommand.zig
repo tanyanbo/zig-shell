@@ -35,9 +35,7 @@ pub fn handler(input: []u8) !void {
             const result = navigation.cwd.getCwd();
             try stdout.print("{s}\n", .{result});
         } else if (std.mem.eql(u8, command, "cd")) {
-            if (args.items.len > 1) {
-                navigation.cwd.setCwd(args.items[1]);
-            }
+            try handleCd(args.items);
         } else {
             try handleUnknownCommands(args.items);
         }
@@ -54,8 +52,33 @@ fn handleExit(args: [][]const u8) void {
     } else std.process.exit(6);
 }
 
+fn handleCd(args: [][]const u8) !void {
+    if (args.len <= 1) {
+        return;
+    }
+
+    if (std.mem.eql(u8, args[1], "~")) {
+        return;
+    }
+
+    if (std.mem.eql(u8, args[1], ".")) {
+        return;
+    }
+
+    if (std.mem.eql(u8, args[1], "..")) {
+        return;
+    }
+
+    const exists = dirExists(args[1]);
+    if (exists) {
+        navigation.cwd.setCwd(args[1]);
+    } else {
+        try stdout.print("cd: {s}: No such file or directory\n", .{args[1]});
+    }
+}
+
 fn handleType(args: [][]const u8) !void {
-    const builtins = [_][]const u8{ "echo", "type", "exit", "pwd" };
+    const builtins = [_][]const u8{ "echo", "type", "exit", "pwd", "cd" };
     if (args.len <= 1) {
         return;
     }
@@ -126,4 +149,9 @@ fn handleUnknownCommands(args: [][]const u8) !void {
     } else {
         try stdout.print("{s}: command not found\n", .{command});
     }
+}
+
+fn dirExists(path: []const u8) bool {
+    _ = std.fs.cwd().openDir(path, .{}) catch return false;
+    return true;
 }
