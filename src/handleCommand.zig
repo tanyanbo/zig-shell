@@ -1,4 +1,5 @@
 const std = @import("std");
+const execute = @import("execute.zig");
 
 const stdout = std.io.getStdOut().writer();
 
@@ -49,32 +50,12 @@ fn handleType(input: []u8) !void {
 fn findBinInPath(arg: []const u8) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
-    const pathValue = try std.process.getEnvVarOwned(allocator, "PATH");
-    defer {
-        allocator.free(pathValue);
-        _ = gpa.deinit();
+    const res = try execute.findExecutableInPath(allocator, arg);
+    if (res != null) {
+        defer allocator.free(res.?);
+        try stdout.print("{s} is {s}/{s}\n", .{ arg, res.?, arg });
+        return;
     }
-
-    var pathIter = std.mem.splitSequence(u8, pathValue, ":");
-    while (pathIter.next()) |path| {
-        var dir = std.fs.openDirAbsolute(path, .{ .iterate = true }) catch {
-            continue;
-        };
-        defer dir.close();
-
-        var iter = dir.iterate();
-        const res: ?[]const u8 = while (try iter.next()) |entry| {
-            if (std.mem.eql(u8, entry.name, arg)) {
-                break entry.name;
-            }
-        } else null;
-
-        if (res != null) {
-            try stdout.print("{s} is {s}/{s}\n", .{ arg, path, arg });
-            return;
-        }
-    }
-
     try stdout.print("{s}: not found\n", .{arg});
 }
 
