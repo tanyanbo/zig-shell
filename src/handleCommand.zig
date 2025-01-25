@@ -13,8 +13,11 @@ pub fn handler(input: []u8) !void {
 
     if (std.mem.eql(u8, command.?, "exit")) {
         const exitCode = iter.next();
-        std.process.exit(try std.fmt.parseInt(u8, exitCode.?, 10));
-        return;
+        if (exitCode == null) {
+            std.process.exit(6);
+        }
+        const intExitCode = std.fmt.parseInt(u8, exitCode.?, 10) catch 5;
+        std.process.exit(intExitCode);
     } else if (std.mem.eql(u8, command.?, "echo")) {
         try stdout.print("{s}\n", .{input[5..]});
     } else {
