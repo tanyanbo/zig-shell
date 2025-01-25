@@ -1,5 +1,6 @@
 const std = @import("std");
 const execute = @import("execute.zig");
+const navigation = @import("navigation.zig");
 
 const stdout = std.io.getStdOut().writer();
 
@@ -31,10 +32,12 @@ pub fn handler(input: []u8) !void {
         } else if (std.mem.eql(u8, command, "type")) {
             try handleType(args.items);
         } else if (std.mem.eql(u8, command, "pwd")) {
-            const buffer = try allocator.alloc(u8, 1000);
-            defer allocator.free(buffer);
-            const result = try std.fs.cwd().realpath(".", buffer);
+            const result = navigation.cwd.getCwd();
             try stdout.print("{s}\n", .{result});
+        } else if (std.mem.eql(u8, command, "cd")) {
+            if (args.items.len > 1) {
+                navigation.cwd.setCwd(args.items[1]);
+            }
         } else {
             try handleUnknownCommands(args.items);
         }
