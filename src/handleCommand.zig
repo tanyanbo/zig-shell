@@ -6,26 +6,23 @@ const stdout = std.io.getStdOut().writer();
 pub fn handler(input: []u8) !void {
     var iter = std.mem.splitSequence(u8, input, " ");
 
-    const command = iter.next();
-
-    if (command == null) {
-        std.process.exit(1);
-        return;
-    }
-
-    if (std.mem.eql(u8, command.?, "exit")) {
-        const exitCode = iter.next();
-        if (exitCode == null) {
-            std.process.exit(6);
+    if (iter.next()) |command| {
+        if (std.mem.eql(u8, command, "exit")) {
+            if (iter.next()) |exitCode| {
+                const intExitCode = std.fmt.parseInt(u8, exitCode, 10) catch 5;
+                std.process.exit(intExitCode);
+            } else {
+                std.process.exit(6);
+            }
+        } else if (std.mem.eql(u8, command, "echo")) {
+            try handleEcho(input);
+        } else if (std.mem.eql(u8, command, "type")) {
+            try handleType(input);
+        } else {
+            try handleUnknownCommands(input);
         }
-        const intExitCode = std.fmt.parseInt(u8, exitCode.?, 10) catch 5;
-        std.process.exit(intExitCode);
-    } else if (std.mem.eql(u8, command.?, "echo")) {
-        try handleEcho(input);
-    } else if (std.mem.eql(u8, command.?, "type")) {
-        try handleType(input);
     } else {
-        try handleUnknownCommands(input);
+        std.process.exit(1);
     }
 }
 
