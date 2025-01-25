@@ -57,7 +57,7 @@ fn findBinInPath(arg: []const u8) !void {
 
     var pathIter = std.mem.splitSequence(u8, pathValue, ":");
     while (pathIter.next()) |path| {
-        var dir = std.fs.openDirAbsolute(path, .{}) catch {
+        var dir = std.fs.openDirAbsolute(path, .{ .iterate = true }) catch {
             continue;
         };
         defer dir.close();
