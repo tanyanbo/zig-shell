@@ -31,28 +31,32 @@ fn handleType(input: []u8) !void {
     var argsIter = std.mem.splitSequence(u8, input[5..], " ");
 
     while (argsIter.next()) |arg| {
-        const res = for (builtins) |builtin| {
+        const isBuiltin = for (builtins) |builtin| {
             if (std.mem.eql(u8, builtin, arg)) {
                 break true;
             }
         } else false;
-        if (res) {
+        if (isBuiltin) {
             try stdout.print("{s} is a shell builtin\n", .{arg});
         } else {
-            try findBinInPath(arg);
+            var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+            defer {
+                const status = gpa.deinit();
+                if (status == .leak) {
+                    stdout.print("memory leak\n", .{}) catch {};
+                    std.process.exit(100);
+                }
+            }
+
+            const allocator = gpa.allocator();
+            if (try execute.findExecutableInPath(allocator, arg)) |dir| {
+                defer allocator.free(dir);
+                try stdout.print("{s} is {s}/{s}\n", .{ arg, dir, arg });
+                return;
+            }
+            try stdout.print("{s}: not found\n", .{arg});
         }
     }
-}
-
-fn findBinInPath(arg: []const u8) !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-    if (try execute.findExecutableInPath(allocator, arg)) |res| {
-        defer allocator.free(res);
-        try stdout.print("{s} is {s}/{s}\n", .{ arg, res, arg });
-        return;
-    }
-    try stdout.print("{s}: not found\n", .{arg});
 }
 
 fn handleEcho(input: []u8) !void {
@@ -60,5 +64,36 @@ fn handleEcho(input: []u8) !void {
 }
 
 fn handleUnknownCommands(input: []u8) !void {
-    try stdout.print("{s}: command not found\n", .{input});
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer {
+        const status = gpa.deinit();
+        if (status == .leak) {
+            stdout.print("memory leak\n", .{}) catch {};
+            std.process.exit(100);
+        }
+    }
+
+    const allocator = gpa.allocator();
+
+    var iter = std.mem.splitSequence(u8, input, " ");
+    const command = iter.next();
+    if (command == null) {
+        return;
+    }
+
+    if (try execute.findExecutableInPath(allocator, command.?)) |res| {
+        defer allocator.free(res);
+        const path = try allocator.alloc(u8, res.len + 1 + command.?.len);
+        for (res, 0..) |c, i| {
+            path[i] = c;
+        }
+        path[res.len] = '/';
+        for (command.?, 0..) |c, i| {
+            path[res.len + 1 + i] = c;
+        }
+        try execute.executeExe(allocator, path, command.?);
+        return;
+    } else {
+        try stdout.print("{s}: command not found\n", .{input});
+    }
 }
