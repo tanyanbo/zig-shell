@@ -52,7 +52,7 @@ fn handleExit(args: [][]const u8) void {
 }
 
 fn handleType(args: [][]const u8) !void {
-    const builtins = [_][]const u8{ "echo", "type", "exit" };
+    const builtins = [_][]const u8{ "echo", "type", "exit", "pwd" };
     if (args.len <= 1) {
         return;
     }
