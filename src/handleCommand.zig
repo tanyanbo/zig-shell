@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const stdout = std.io.getStdOut().writer();
+
 pub fn handler(input: []u8) !void {
     var iter = std.mem.splitSequence(u8, input, " ");
 
@@ -27,7 +29,6 @@ pub fn handler(input: []u8) !void {
 }
 
 fn handleType(input: []u8) !void {
-    const stdout = std.io.getStdOut().writer();
     const builtins = [_][]const u8{ "echo", "type", "exit" };
     var argsIter = std.mem.splitSequence(u8, input[5..], " ");
 
@@ -40,17 +41,47 @@ fn handleType(input: []u8) !void {
         if (res) {
             try stdout.print("{s} is a shell builtin\n", .{arg});
         } else {
-            try stdout.print("{s}: not found\n", .{arg});
+            try findBinInPath(arg);
         }
     }
 }
 
+fn findBinInPath(arg: []const u8) !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    const pathValue = try std.process.getEnvVarOwned(allocator, "PATH");
+    defer {
+        allocator.free(pathValue);
+        _ = gpa.deinit();
+    }
+
+    var pathIter = std.mem.splitSequence(u8, pathValue, ":");
+    while (pathIter.next()) |path| {
+        var dir = std.fs.openDirAbsolute(path, .{}) catch {
+            continue;
+        };
+        defer dir.close();
+
+        var iter = dir.iterate();
+        const res: ?[]const u8 = while (try iter.next()) |entry| {
+            if (entry.kind == .file and std.mem.eql(u8, entry.name, arg)) {
+                break entry.name;
+            }
+        } else null;
+
+        if (res != null) {
+            try stdout.print("{s} is {s}/{s}\n", .{ arg, res.?, arg });
+            return;
+        }
+    }
+
+    try stdout.print("{s}: not found\n", .{arg});
+}
+
 fn handleEcho(input: []u8) !void {
-    const stdout = std.io.getStdOut().writer();
     try stdout.print("{s}\n", .{input[5..]});
 }
 
 fn handleUnknownCommands(input: []u8) !void {
-    const stdout = std.io.getStdOut().writer();
     try stdout.print("{s}: command not found\n", .{input});
 }
