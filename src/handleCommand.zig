@@ -50,10 +50,9 @@ fn handleType(input: []u8) !void {
 fn findBinInPath(arg: []const u8) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
-    const res = try execute.findExecutableInPath(allocator, arg);
-    if (res != null) {
-        defer allocator.free(res.?);
-        try stdout.print("{s} is {s}/{s}\n", .{ arg, res.?, arg });
+    if (try execute.findExecutableInPath(allocator, arg)) |res| {
+        defer allocator.free(res);
+        try stdout.print("{s} is {s}/{s}\n", .{ arg, res, arg });
         return;
     }
     try stdout.print("{s}: not found\n", .{arg});
