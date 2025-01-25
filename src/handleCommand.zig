@@ -57,7 +57,10 @@ fn handleCd(args: [][]const u8) !void {
         return;
     }
 
-    if (std.mem.eql(u8, args[1], "~")) {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
+    if (std.mem.eql(u8, args[1], "~") or std.mem.startsWith(u8, args[1], "~/")) {
         return;
     }
 
@@ -65,15 +68,36 @@ fn handleCd(args: [][]const u8) !void {
         return;
     }
 
-    if (std.mem.eql(u8, args[1], "..")) {
+    if (std.mem.startsWith(u8, args[1], "./")) {
+        const absPath = try std.fs.path.join(allocator, &[_][]const u8{ navigation.cwd.getCwd(), args[1][2..] });
+        defer allocator.free(absPath);
+        try attemptToNavigate(absPath);
         return;
     }
 
-    const exists = dirExists(args[1]);
+    if (std.mem.eql(u8, args[1], "..")) {
+        const absPath = try std.fs.path.resolve(allocator, &[_][]const u8{ navigation.cwd.getCwd(), ".." });
+        defer allocator.free(absPath);
+        try attemptToNavigate(absPath);
+        return;
+    }
+
+    if (std.mem.startsWith(u8, args[1], "../")) {
+        const absPath = try std.fs.path.resolve(allocator, &[_][]const u8{ navigation.cwd.getCwd(), "..", args[1][3..] });
+        defer allocator.free(absPath);
+        try attemptToNavigate(absPath);
+        return;
+    }
+
+    try attemptToNavigate(args[1]);
+}
+
+fn attemptToNavigate(path: []const u8) !void {
+    const exists = dirExists(path);
     if (exists) {
-        navigation.cwd.setCwd(args[1]);
+        navigation.cwd.setCwd(path);
     } else {
-        try stdout.print("cd: {s}: No such file or directory\n", .{args[1]});
+        try stdout.print("cd: {s}: No such file or directory\n", .{path});
     }
 }
 
