@@ -64,13 +64,13 @@ fn findBinInPath(arg: []const u8) !void {
 
         var iter = dir.iterate();
         const res: ?[]const u8 = while (try iter.next()) |entry| {
-            if (entry.kind == .file and std.mem.eql(u8, entry.name, arg)) {
+            if (std.mem.eql(u8, entry.name, arg)) {
                 break entry.name;
             }
         } else null;
 
         if (res != null) {
-            try stdout.print("{s} is {s}/{s}\n", .{ arg, res.?, arg });
+            try stdout.print("{s} is {s}/{s}\n", .{ arg, path, arg });
             return;
         }
     }
