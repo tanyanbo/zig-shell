@@ -2,7 +2,6 @@ const std = @import("std");
 const handleCommand = @import("handleCommand.zig");
 
 pub fn main() !void {
-    // Uncomment this block to pass the first stage
     const stdout = std.io.getStdOut().writer();
 
     const stdin = std.io.getStdIn().reader();

@@ -39,6 +39,8 @@ fn handleType(input: []u8) !void {
         } else false;
         if (res) {
             try stdout.print("{s} is a shell builtin\n", .{arg});
+        } else {
+            try stdout.print("{s}: not found\n", .{arg});
         }
     }
 }
