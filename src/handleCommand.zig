@@ -32,7 +32,7 @@ pub fn handler(input: []u8) !void {
         } else if (std.mem.eql(u8, command, "type")) {
             try handleType(args.items);
         } else if (std.mem.eql(u8, command, "pwd")) {
-            const result = navigation.cwd.getCwd();
+            const result = try std.process.getCwdAlloc(allocator);
             try stdout.print("{s}\n", .{result});
         } else if (std.mem.eql(u8, command, "cd")) {
             try handleCd(args.items);
@@ -59,6 +59,7 @@ fn handleCd(args: [][]const u8) !void {
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
+    const cwd = try std.process.getCwdAlloc(allocator);
 
     if (std.mem.eql(u8, args[1], "~")) {
         const homeValue = try std.process.getEnvVarOwned(allocator, "HOME");
@@ -79,21 +80,21 @@ fn handleCd(args: [][]const u8) !void {
     }
 
     if (std.mem.startsWith(u8, args[1], "./")) {
-        const absPath = try std.fs.path.join(allocator, &[_][]const u8{ navigation.cwd.getCwd(), args[1][2..] });
+        const absPath = try std.fs.path.join(allocator, &[_][]const u8{ cwd, args[1][2..] });
         defer allocator.free(absPath);
         try attemptToNavigate(absPath);
         return;
     }
 
     if (std.mem.eql(u8, args[1], "..")) {
-        const absPath = try std.fs.path.resolve(allocator, &[_][]const u8{ navigation.cwd.getCwd(), ".." });
+        const absPath = try std.fs.path.resolve(allocator, &[_][]const u8{ cwd, ".." });
         defer allocator.free(absPath);
         try attemptToNavigate(absPath);
         return;
     }
 
     if (std.mem.startsWith(u8, args[1], "../")) {
-        const absPath = try std.fs.path.resolve(allocator, &[_][]const u8{ navigation.cwd.getCwd(), "..", args[1][3..] });
+        const absPath = try std.fs.path.resolve(allocator, &[_][]const u8{ cwd, "..", args[1][3..] });
         defer allocator.free(absPath);
         try attemptToNavigate(absPath);
         return;
@@ -105,7 +106,7 @@ fn handleCd(args: [][]const u8) !void {
 fn attemptToNavigate(path: []const u8) !void {
     const exists = dirExists(path);
     if (exists) {
-        navigation.cwd.setCwd(path);
+        try std.process.changeCurDir(path);
     } else {
         try stdout.print("cd: {s}: No such file or directory\n", .{path});
     }
