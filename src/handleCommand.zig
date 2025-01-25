@@ -6,14 +6,19 @@ const stdout = std.io.getStdOut().writer();
 pub fn handler(input: []u8) !void {
     var iter = std.mem.splitSequence(u8, input, " ");
 
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    var args = std.ArrayList([]const u8).init(allocator);
+    defer args.deinit();
+
     if (iter.next()) |command| {
+        try args.append(command);
+        while (iter.next()) |arg| {
+            try args.append(arg);
+        }
+
         if (std.mem.eql(u8, command, "exit")) {
-            if (iter.next()) |exitCode| {
-                const intExitCode = std.fmt.parseInt(u8, exitCode, 10) catch 5;
-                std.process.exit(intExitCode);
-            } else {
-                std.process.exit(6);
-            }
+            handleExit(args.items);
         } else if (std.mem.eql(u8, command, "echo")) {
             try handleEcho(input);
         } else if (std.mem.eql(u8, command, "type")) {
@@ -24,6 +29,14 @@ pub fn handler(input: []u8) !void {
     } else {
         std.process.exit(1);
     }
+}
+
+fn handleExit(args: [][]const u8) void {
+    if (args.len > 1) {
+        const exitCode = args[1];
+        const intExitCode = std.fmt.parseInt(u8, exitCode, 10) catch 5;
+        std.process.exit(intExitCode);
+    } else std.process.exit(6);
 }
 
 fn handleType(input: []u8) !void {
