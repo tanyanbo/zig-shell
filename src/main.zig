@@ -1,4 +1,5 @@
 const std = @import("std");
+const handleCommand = @import("handleCommand.zig");
 
 pub fn main() !void {
     // Uncomment this block to pass the first stage
@@ -11,6 +12,6 @@ pub fn main() !void {
         try stdout.print("$ ", .{});
         const user_input = try stdin.readUntilDelimiter(&buffer, '\n');
 
-        try stdout.print("{s}: command not found\n", .{user_input});
+        try handleCommand.handler(user_input);
     }
 }
