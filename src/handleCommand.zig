@@ -20,7 +20,7 @@ pub fn handler(input: []u8) !void {
         if (std.mem.eql(u8, command, "exit")) {
             handleExit(args.items);
         } else if (std.mem.eql(u8, command, "echo")) {
-            try handleEcho(input);
+            try handleEcho(args.items);
         } else if (std.mem.eql(u8, command, "type")) {
             try handleType(input);
         } else {
@@ -72,8 +72,13 @@ fn handleType(input: []u8) !void {
     }
 }
 
-fn handleEcho(input: []u8) !void {
-    try stdout.print("{s}\n", .{input[5..]});
+fn handleEcho(args: [][]const u8) !void {
+    if (args.len > 1) {
+        for (args[1..], 1..) |arg, i| {
+            try stdout.print("{s}{s}", .{ arg, if (i == args.len - 1) "" else " " });
+        }
+        try stdout.print("\n", .{});
+    }
 }
 
 fn handleUnknownCommands(input: []u8) !void {
