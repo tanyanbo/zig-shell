@@ -1,5 +1,4 @@
 const std = @import("std");
-const navigation = @import("navigation.zig");
 const handleCommand = @import("handleCommand.zig");
 
 pub fn main() !void {

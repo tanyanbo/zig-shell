@@ -1,6 +1,5 @@
 const std = @import("std");
 const execute = @import("execute.zig");
-const navigation = @import("navigation.zig");
 
 const stdout = std.io.getStdOut().writer();
 
