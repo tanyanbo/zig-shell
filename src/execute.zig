@@ -26,16 +26,8 @@ pub fn findExecutableInPath(allocator: std.mem.Allocator, executable: []const u8
     return null;
 }
 
-pub fn executeExe(allocator: std.mem.Allocator, command: []const u8) !void {
-    var args = std.ArrayList([]const u8).init(allocator);
-    defer args.deinit();
-
-    var iter = std.mem.splitSequence(u8, command, " ");
-    while (iter.next()) |arg| {
-        try args.append(arg);
-    }
-
-    var child = std.process.Child.init(args.items, allocator);
+pub fn executeExe(allocator: std.mem.Allocator, args: [][]const u8) !void {
+    var child = std.process.Child.init(args, allocator);
     _ = try child.spawnAndWait();
 }
 

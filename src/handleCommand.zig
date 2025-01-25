@@ -24,7 +24,7 @@ pub fn handler(input: []u8) !void {
         } else if (std.mem.eql(u8, command, "type")) {
             try handleType(input);
         } else {
-            try handleUnknownCommands(input);
+            try handleUnknownCommands(args.items);
         }
     } else {
         std.process.exit(1);
@@ -81,7 +81,7 @@ fn handleEcho(args: [][]const u8) !void {
     }
 }
 
-fn handleUnknownCommands(input: []u8) !void {
+fn handleUnknownCommands(args: [][]const u8) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
         const status = gpa.deinit();
@@ -93,16 +93,15 @@ fn handleUnknownCommands(input: []u8) !void {
 
     const allocator = gpa.allocator();
 
-    var iter = std.mem.splitSequence(u8, input, " ");
-    const command = iter.next();
-    if (command == null) {
+    if (args.len == 0) {
         return;
     }
+    const command = args[0];
 
-    if (try execute.findExecutableInPath(allocator, command.?)) |res| {
+    if (try execute.findExecutableInPath(allocator, command)) |res| {
         defer allocator.free(res);
-        try execute.executeExe(allocator, input);
+        try execute.executeExe(allocator, args);
     } else {
-        try stdout.print("{s}: command not found\n", .{input});
+        try stdout.print("{s}: command not found\n", .{command});
     }
 }
