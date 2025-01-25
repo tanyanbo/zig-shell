@@ -22,7 +22,7 @@ pub fn handler(input: []u8) !void {
         } else if (std.mem.eql(u8, command, "echo")) {
             try handleEcho(args.items);
         } else if (std.mem.eql(u8, command, "type")) {
-            try handleType(input);
+            try handleType(args.items);
         } else {
             try handleUnknownCommands(args.items);
         }
@@ -39,19 +39,26 @@ fn handleExit(args: [][]const u8) void {
     } else std.process.exit(6);
 }
 
-fn handleType(input: []u8) !void {
+fn handleType(args: [][]const u8) !void {
     const builtins = [_][]const u8{ "echo", "type", "exit" };
-    var argsIter = std.mem.splitSequence(u8, input[5..], " ");
+    if (args.len <= 1) {
+        return;
+    }
 
-    while (argsIter.next()) |arg| {
+    var idx: u32 = 1;
+
+    while (idx < args.len) : (idx += 1) {
+        const arg = args[idx];
+
         const isBuiltin = for (builtins) |builtin| {
             if (std.mem.eql(u8, builtin, arg)) {
                 break true;
             }
         } else false;
+
         if (isBuiltin) {
             try stdout.print("{s} is a shell builtin\n", .{arg});
-        } else {
+        } else if (idx == 1) {
             var gpa = std.heap.GeneralPurposeAllocator(.{}){};
             defer {
                 const status = gpa.deinit();
