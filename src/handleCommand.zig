@@ -83,16 +83,7 @@ fn handleUnknownCommands(input: []u8) !void {
 
     if (try execute.findExecutableInPath(allocator, command.?)) |res| {
         defer allocator.free(res);
-        const path = try allocator.alloc(u8, res.len + 1 + command.?.len);
-        for (res, 0..) |c, i| {
-            path[i] = c;
-        }
-        path[res.len] = '/';
-        for (command.?, 0..) |c, i| {
-            path[res.len + 1 + i] = c;
-        }
-        try execute.executeExe(allocator, path, command.?);
-        return;
+        try execute.executeExe(allocator, input);
     } else {
         try stdout.print("{s}: command not found\n", .{input});
     }
