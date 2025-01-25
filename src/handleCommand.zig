@@ -32,6 +32,7 @@ pub fn handler(input: []u8) !void {
             try handleType(args.items);
         } else if (std.mem.eql(u8, command, "pwd")) {
             const result = try std.process.getCwdAlloc(allocator);
+            defer allocator.free(result);
             try stdout.print("{s}\n", .{result});
         } else if (std.mem.eql(u8, command, "cd")) {
             try handleCd(args.items);
@@ -59,6 +60,7 @@ fn handleCd(args: [][]const u8) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     const cwd = try std.process.getCwdAlloc(allocator);
+    defer allocator.free(cwd);
 
     if (std.mem.eql(u8, args[1], "~")) {
         const homeValue = try std.process.getEnvVarOwned(allocator, "HOME");
